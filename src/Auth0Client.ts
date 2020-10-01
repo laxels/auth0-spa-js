@@ -139,6 +139,7 @@ export default class Auth0Client {
   private worker: Worker;
 
   constructor(private options: Auth0ClientOptions) {
+    console.log('Using patched Auth0Client');
     typeof window !== 'undefined' && validateCrypto();
     this.cacheLocation = options.cacheLocation || CACHE_LOCATION_MEMORY;
     this.cookieStorage =
@@ -286,7 +287,7 @@ export default class Auth0Client {
 
     const url = this._authorizeUrl(params);
 
-    this.transactionManager.create({
+    this.transactionManager.create(stateIn, {
       nonce: nonceIn,
       code_verifier,
       appState,
@@ -460,7 +461,7 @@ export default class Auth0Client {
       queryStringFragments.join('')
     );
 
-    const transaction = this.transactionManager.get();
+    const transaction = this.transactionManager.get(state);
 
     // Transaction should have a `code_verifier` to do PKCE and a `nonce` for CSRF protection
     if (!transaction || !transaction.code_verifier || !transaction.nonce) {
@@ -468,7 +469,7 @@ export default class Auth0Client {
     }
 
     if (error) {
-      this.transactionManager.remove();
+      this.transactionManager.remove(state);
 
       throw new AuthenticationError(
         error,
@@ -478,7 +479,7 @@ export default class Auth0Client {
       );
     }
 
-    this.transactionManager.remove();
+    this.transactionManager.remove(state);
 
     const tokenOptions = {
       audience: transaction.audience,
